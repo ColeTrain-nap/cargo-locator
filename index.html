@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2059レ カンガルーライナーSS60 ロケーター</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        #map { height: 70vh; width: 100%; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        body { font-family: 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif; margin: 0; padding: 10px; background: #f0f0f0; }
+        
+        /* 情報パネル */
+        .info-panel { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-top: 6px solid #0055aa; box-shadow: 0 2px 6px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
+        .train-title { font-size: 1.1em; font-weight: bold; color: #333; }
+        .loco-number-display { background: #333; color: #ffcc00; padding: 5px 10px; border-radius: 4px; font-family: monospace; font-size: 1.2em; font-weight: bold; }
+        
+        /* EF210イラストアイコン */
+        .ef210-icon-container { text-align: center; }
+        .loco-label-on-map { background: rgba(0, 0, 0, 0.7); color: white; padding: 1px 4px; border-radius: 3px; font-size: 11px; font-weight: bold; position: relative; top: -5px; white-space: nowrap; }
+    </style>
+</head>
+<body>
+
+    <div class="info-panel">
+        <div>
+            <div class="train-title">🚚 2059レ カンガルーライナーSS60 </div>
+            <div style="font-size:0.9em;">現在時刻: <span id="clock">--:--:--</span></div>
+            <div style="font-size:0.9em; margin-top:3px;">状況: <span id="status" style="color: #e60012; font-weight:bold;">読込中...</span></div>
+        </div>
+        <div class="loco-number-display">
+            <span id="loco-full-number">確認中...</span>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script>
+        // 1. 時刻表データ（簡易版）
+        const timetable = [
+            {st: "吹田(貨)", lat: 34.7831, lng: 135.5348, arr: "15:00", dep: "15:43"},
+            {st: "京都貨物", lat: 34.9840, lng: 135.7439, arr: "16:15", dep: "16:17"},
+            {st: "米原(操)", lat: 35.3150, lng: 136.2885, arr: "17:15", dep: "17:20"},
+            {st: "稲沢",     lat: 35.2530, lng: 136.8208, arr: "18:20", dep: "18:40"},
+            {st: "静岡(貨)", lat: 34.9856, lng: 138.4239, arr: "21:30", dep: "21:45"}
+        ];
+
+        // 2. 地図の初期化
+        const map = L.map('map').setView([35.1, 136.5], 7);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        // EF210 正面イラスト (SVG)
+        const ef210Svg = `
+            <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
+                <rect x="2" y="10" width="36" height="35" rx="3" fill="#0055aa" stroke="#000" stroke-width="1"/>
+                <rect x="4" y="5" width="32" height="6" rx="2" fill="#aaaaaa" stroke="#000" stroke-width="1"/>
+                <rect x="5" y="15" width="30" height="10" rx="1" fill="#222222"/>
+                <rect x="2" y="28" width="36" height="8" fill="#ffffff"/>
+                <rect x="2" y="36" width="36" height="2" fill="#ffcc00"/>
+                <circle cx="10" y="40" r="2" fill="#ffcc00" stroke="#000" stroke-width="0.5"/>
+                <circle cx="30" y="40" r="2" fill="#ffcc00" stroke="#000" stroke-width="0.5"/>
+                <rect x="13" y="30" width="14" height="4" rx="1" fill="#333"/>
+            </svg>
+        `;
+
+        const trainIcon = L.divIcon({
+            html: `<div class="ef210-icon-container">
+                     <div class="loco-label-on-map" id="map-label">EF210</div>
+                     <div>${ef210Svg}</div>
+                   </div>`,
+            iconSize: [40, 65],
+            iconAnchor: [20, 60],
+            className: 'custom-train-icon'
+        });
+        const marker = L.marker([0, 0], {icon: trainIcon}).addTo(map);
+
+        function toMin(tStr) {
+            const [h, m] = tStr.split(':').map(Number);
+            return h * 60 + m;
+        }
+
+        // ★新規：data.jsonを読み込む関数
+        async function fetchLatestData() {
+            try {
+                // キャッシュを避けるためタイムスタンプを付与
+                const response = await fetch('data.json?t=' + new Date().getTime());
+                const data = await response.json();
+                const loco = data["2059"];
+                if (loco) {
+                    document.getElementById('loco-full-number').innerText = loco;
+                    document.getElementById('map-label').innerText = loco.replace('-', '');
+                }
+            } catch (e) {
+                console.log("データ読み込み待ち...");
+            }
+        }
+
+        // 表示を更新するメインロジック
+        function updateDisplay() {
+            const nowTime = new Date();
+            const currentMin = nowTime.getHours() * 60 + nowTime.getMinutes();
+            document.getElementById('clock').innerText = nowTime.toLocaleTimeString('ja-JP');
+
+            let found = false;
+            for (let i = 0; i < timetable.length - 1; i++) {
+                const depSt = timetable[i];
+                const arrSt = timetable[i+1];
+                const tDep = toMin(depSt.dep);
+                const tArr = toMin(arrSt.arr);
+
+                if (currentMin >= tDep && currentMin < tArr) {
+                    const ratio = (currentMin - tDep) / (tArr - tDep);
+                    const curLat = depSt.lat + (arrSt.lat - depSt.lat) * ratio;
+                    const curLng = depSt.lng + (arrSt.lng - depSt.lng) * ratio;
+                    marker.setLatLng([curLat, curLng]);
+                    document.getElementById('status').innerText = `${depSt.st} ～ ${arrSt.st} 間を走行中`;
+                    found = true; break;
+                }
+                if (currentMin >= toMin(depSt.arr) && currentMin <= tDep) {
+                    marker.setLatLng([depSt.lat, depSt.lng]);
+                    document.getElementById('status').innerText = `${depSt.st} に停車中`;
+                    found = true; break;
+                }
+            }
+            if (!found) document.getElementById('status').innerText = "運行範囲外またはデータなし";
+        }
+
+        // 定期更新
+        setInterval(() => {
+            updateDisplay();
+            fetchLatestData();
+        }, 5000);
+        
+        updateDisplay();
+        fetchLatestData();
+    </script>
+</body>
+</html>
