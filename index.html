@@ -97,7 +97,27 @@
             }
         }
 
-        // 表示を更新するメインロジック
+// ★新規：data.jsonを読み込む魔法の関数
+        async function fetchLatestData() {
+            try {
+                // キャッシュ（古いデータ）を避けるために時間を付けて読み込む
+                const response = await fetch('data.json?t=' + new Date().getTime());
+                const data = await response.json();
+                
+                // 2059レの情報を取り出す
+                const loco = data["2059"];
+                if (loco) {
+                    // 画面の右上の表示を更新
+                    document.getElementById('loco-full-number').innerText = loco;
+                    // 地図上のアイコンのラベルを更新（ハイフンを消してスッキリさせる）
+                    document.getElementById('map-label').innerText = loco.replace('-', '');
+                }
+            } catch (e) {
+                console.log("データの読み込み待ち...");
+            }
+        }
+
+        // 表示を更新するメインロジック（位置計算）
         function updateDisplay() {
             const nowTime = new Date();
             const currentMin = nowTime.getHours() * 60 + nowTime.getMinutes();
@@ -127,13 +147,15 @@
             if (!found) document.getElementById('status').innerText = "運行範囲外またはデータなし";
         }
 
-        // 定期更新
+        // 定期更新（5秒ごとに位置計算とデータ読み込みを両方やる）
         setInterval(() => {
             updateDisplay();
             fetchLatestData();
         }, 5000);
         
+        // ページを開いた時にも一度実行しておく
         updateDisplay();
+        fetchLatestData();
         fetchLatestData();
     </script>
 </body>
