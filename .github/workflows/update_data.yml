@@ -1,0 +1,35 @@
+name: 貨物機番更新ロボ
+
+on:
+  schedule:
+    - cron: '0 * * * *' # 1時間ごとに実行
+  workflow_dispatch: # 手動実行ボタン
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: コードをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Pythonのセットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: 必要な道具をインストール
+        run: |
+          pip install requests beautifulsoup4
+
+      - name: Pythonスクリプトを実行
+        run: python check_train.py
+
+      - name: 結果(data.json)を保存してGitHubに反映
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data.json
+          git commit -m "Update data.json" || exit 0
+          git push
