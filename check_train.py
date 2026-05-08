@@ -4,7 +4,8 @@ import json
 import time
 
 # 後で増やせるようにリスト形式にしておきます
-TARGET_TRAINS = ["2059"]
+# 調査対象の列車リスト
+TARGET_TRAINS = ["2059", "5061", "54", "2053"]
 
 def scrap_loco_info(train_no):
     # 貨物ちゃんねるの運用情報ページ（例）
