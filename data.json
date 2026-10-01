@@ -1,6 +1,6 @@
 {
-    "2059": "不明",
-    "5061": "不明",
-    "54": "不明",
-    "2053": "不明"
+    "2059": "Error: HTTPSConnectionPool(host='kamo.apreed.com', port=443): Max retries exceeded with url: /unyo.html (Caused by NewConnectionError(\"HTTPSConnection(host='kamo.apreed.com', port=443): Failed to establish a new connection: [Errno 111] Connection refused\"))",
+    "5061": "Error: HTTPSConnectionPool(host='kamo.apreed.com', port=443): Max retries exceeded with url: /unyo.html (Caused by NewConnectionError(\"HTTPSConnection(host='kamo.apreed.com', port=443): Failed to establish a new connection: [Errno 111] Connection refused\"))",
+    "54": "Error: HTTPSConnectionPool(host='kamo.apreed.com', port=443): Max retries exceeded with url: /unyo.html (Caused by NewConnectionError(\"HTTPSConnection(host='kamo.apreed.com', port=443): Failed to establish a new connection: [Errno 111] Connection refused\"))",
+    "2053": "Error: HTTPSConnectionPool(host='kamo.apreed.com', port=443): Max retries exceeded with url: /unyo.html (Caused by NewConnectionError(\"HTTPSConnection(host='kamo.apreed.com', port=443): Failed to establish a new connection: [Errno 111] Connection refused\"))"
 }
